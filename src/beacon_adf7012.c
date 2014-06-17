@@ -101,7 +101,6 @@ _Bool Systick_Init(void){
 }
 
 void SysTick_Handler(void){
-
 	Systick_Counter += 1;
 	Delay_Counter   += 1;
 }
@@ -178,18 +177,18 @@ force_register:
 ******************************************************************************/
 _Bool Init_Adf7012(void){
 
-uint8_t register0[4] = {0x04, 0x15, 0xE0, 0x00};
+uint8_t register0[4] = {0x04, 0x11, 0xE0, 0x00};
 uint8_t register1[3] = {0x5B, 0x40, 0x01}      ;
 uint8_t register2[4] = {0x00, 0x00, 0x81, 0xEE};
 uint8_t register3[4] = {0x00, 0x45, 0x20, 0xFF};
 
-  Delay_ms(500);
-
+Delay_ms(500);
 
 /*send register0*/
-  ADF7021_LOAD_REGISTER_ENABLE;
-  Delay_ms(1);
 
+ADF7021_LOAD_REGISTER_ENABLE;
+
+Delay_ms(1);
 force_register0:
   SSPSend(PORTNUM, register0, sizeof(register0));
   if(timeout_flag != 0){
@@ -239,7 +238,6 @@ force_register3:
   Delay_ms(1);
   ADF7021_LOAD_REGISTER_DISABLE;
   Delay_ms(10);
-
 
 return TRUE;
 }
