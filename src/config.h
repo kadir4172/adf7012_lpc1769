@@ -25,9 +25,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
-
 
 // --------------------------------------------------------------------------
 // THIS IS THE TRACKUINO FIRMWARE CONFIGURATION FILE. YOUR CALLSIGN AND
@@ -405,7 +402,7 @@
 // #define DEBUG_RESET  // AVR reset
 
 
-#endif
+
 
 
 #endif /* CONFIG_H_ */
