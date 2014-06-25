@@ -18,8 +18,8 @@
 #ifndef __RADIO_ADF7012_H__
 #define __RADIO_ADF7012_H__
 
-#include "radio.h"
-
+//#include "radio.h"
+/*
 class RadioAdf7012 : public Radio {
   public:
     virtual void setup();
@@ -46,7 +46,8 @@ class RadioAdf7012 : public Radio {
     void lock_test(void);
     void divider_test(void);
     void change(void);
-
+};
+*/
 // Register Constants ========================================================
 
 // Register 1 ----------------------------------------------------------------
@@ -98,6 +99,6 @@ class RadioAdf7012 : public Radio {
 
 #define ADF7012_CRYSTAL_FREQ VCXO_FREQ
 
-};
+
 
 #endif
