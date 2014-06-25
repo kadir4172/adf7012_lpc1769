@@ -7,7 +7,7 @@ This file is part of Beacon_software for Adf7021
 // Variable to store CRP value in. Will be placed automatically
 // by the linker when "Enable Code Read Protect" selected.
 // See crp.h header for more information
-__CRP const unsigned int CRP_WORD = CRP_NO_CRP ;
+__CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 
 #include "LPC17xx.h"                        /* LPC17xx definitions */
 #include "ssp.h"

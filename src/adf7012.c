@@ -1,73 +1,83 @@
+/* pecan copyright (C) 2012  KT5TK
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
 
-//#define SPI_BITBANG
-//#include "config.h"
-//#include <math.h>
-#include "adf7012.h"
+#define SPI_BITBANG
 #include "config.h"
+#include <math.h>
+#include "adf7012.h"
 
 
-#define MAX_RES  16
+#if !defined(SPI_BITBANG)
+#include <SPI.h>
+#endif
+
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include <Arduino.h>
+#else
+#include <WProgram.h>
+#endif
+
+const int MAX_RES = 16;
 char res_adf7012[MAX_RES];
-unsigned int powerlevel;
-
-//Function Prototypes
-void adf_reset_register_zero(void);
-void adf_reset_register_one(void);
-void adf_reset_register_two(void);
-void adf_reset_register_three(void);
-void adf_reset(void);
-void adf_write_register(unsigned long);
-int adf_locked(void);
-void adf_write_register_zero(void);
-void adf_write_register_one(void);
-void adf_write_register_two(void);
-void adf_write_register_three(void);
-void ptt_off(void);
-//Function Prototypes
-
+uint32_t powerlevel;
 
 // Configuration storage structs =============================================
 struct {
     struct {
-        unsigned int  frequency_error_correction;
-        unsigned char r_divider;
-        unsigned char crystal_doubler;
-        unsigned char crystal_oscillator_disable;
-        unsigned char clock_out_divider;
-        unsigned char vco_adjust;
-        unsigned char output_divider;
+        uint32_t  frequency_error_correction;
+        uint8_t r_divider;
+        uint8_t crystal_doubler;
+        uint8_t crystal_oscillator_disable;
+        uint8_t clock_out_divider;
+        uint8_t vco_adjust;
+        uint8_t output_divider;
     } r0;
 
     struct {
-        unsigned int  fractional_n;
-        unsigned char integer_n;
-        unsigned char prescaler;
+        uint32_t  fractional_n;
+        uint8_t integer_n;
+        uint8_t prescaler;
     } r1;
 
     struct {
-        unsigned char mod_control;
-        unsigned char gook;
-        unsigned char power_amplifier_level;
-        unsigned int  modulation_deviation;
-        unsigned char gfsk_modulation_control;
-        unsigned char index_counter;
+        uint8_t mod_control;
+        uint8_t gook;
+        uint8_t power_amplifier_level;
+        uint32_t  modulation_deviation;
+        uint8_t gfsk_modulation_control;
+        uint8_t index_counter;
     } r2;
 
     struct {
-        unsigned char pll_enable;
-        unsigned char pa_enable;
-        unsigned char clkout_enable;
-        unsigned char data_invert;
-        unsigned char charge_pump_current;
-        unsigned char bleed_up;
-        unsigned char bleed_down;
-        unsigned char vco_disable;
-        unsigned char muxout;
-        unsigned char ld_precision;
-        unsigned char vco_bias;
-        unsigned char pa_bias;
-        unsigned char pll_test_mode;
-        unsigned char sd_test_mode;
+        uint8_t pll_enable;
+        uint8_t pa_enable;
+        uint8_t clkout_enable;
+        uint8_t data_invert;
+        uint8_t charge_pump_current;
+        uint8_t bleed_up;
+        uint8_t bleed_down;
+        uint8_t vco_disable;
+        uint8_t muxout;
+        uint8_t ld_precision;
+        uint8_t vco_bias;
+        uint8_t pa_bias;
+        uint8_t pll_test_mode;
+        uint8_t sd_test_mode;
     } r3;
 } adf_config;
 
@@ -80,8 +90,7 @@ struct {
 // Configuration functions ===================================================
 
 // Config resetting functions --------------------------------------------
-
-void adf_reset_config(void)
+void RadioAdf7012::adf_reset_config(void)
 {
 
     adf_reset_register_zero();
@@ -90,11 +99,15 @@ void adf_reset_config(void)
     adf_reset_register_three();
 
     adf_reset();
+
+
+
+
 }
 
 // Power up default settings are defined here:
 
-void adf_reset_register_zero(void) {
+void RadioAdf7012::adf_reset_register_zero(void) {
     adf_config.r0.frequency_error_correction = 0;               // Don't bother for now...
     adf_config.r0.r_divider = ADF7012_CRYSTAL_DIVIDER;          // Whatever works best for 2m, 1.25m and 70 cm ham bands
     adf_config.r0.crystal_doubler = 0;                          // Who would want that? Lower f_pfd means finer channel steps.
@@ -104,15 +117,13 @@ void adf_reset_register_zero(void) {
     adf_config.r0.output_divider = ADF_OUTPUT_DIVIDER_BY_4;     // Pre-set div 4 for 2m. Will be changed according tx frequency on the fly
 }
 
-
-void adf_reset_register_one(void) {
+void RadioAdf7012::adf_reset_register_one(void) {
     adf_config.r1.integer_n = 111;                              // Pre-set for 144.390 MHz APRS. Will be changed according tx frequency on the fly
     adf_config.r1.fractional_n = 1687;                          // Pre-set for 144.390 MHz APRS. Will be changed according tx frequency on the fly
     adf_config.r1.prescaler = ADF_PRESCALER_8_9;                // 8/9 requires an integer_n > 91; 4/5 only requires integer_n > 31
 }
 
-
-void adf_reset_register_two(void) {
+void RadioAdf7012::adf_reset_register_two(void) {
     adf_config.r2.mod_control = ADF_MODULATION_ASK;             // For AFSK the modulation is done through the external VCXO we don't want any FM generated by the ADF7012 itself
     adf_config.r2.gook = 0;                                     // Whatever... This might give us a nicer swing in phase maybe...
     adf_config.r2.power_amplifier_level = 16;                   // 16 is about half maximum power. Output −20dBm at 0x0, and 13 dBm at 0x7E at 868 MHz
@@ -122,7 +133,7 @@ void adf_reset_register_two(void) {
     adf_config.r2.index_counter = 0;                            // Don't bother for now...
 }
 
-void adf_reset_register_three(void) {
+void RadioAdf7012::adf_reset_register_three(void) {
     adf_config.r3.pll_enable = 0;                               // Switch off PLL (will be switched on after Ureg is checked and confirmed ok)
     adf_config.r3.pa_enable = 0;                                // Switch off PA  (will be switched on when PLL lock is confirmed)
     adf_config.r3.clkout_enable = 0;                            // No clock output needed at the moment
@@ -141,114 +152,116 @@ void adf_reset_register_three(void) {
     adf_config.r3.sd_test_mode = 0;
 }
 
+void RadioAdf7012::adf_reset(void) {
 
-void adf_reset(void) {
-
-//    digitalWrite(SSpin,   HIGH);
-//    digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
-//    digitalWrite(SCKpin,  HIGH);
-//    digitalWrite(MOSIpin, HIGH);
+    digitalWrite(SSpin,   HIGH);
+    digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
+    digitalWrite(SCKpin,  HIGH);
+    digitalWrite(MOSIpin, HIGH);
 
 
-//    delay(100);
+
+    delay(100);
 }
 
 
 
 
-
-//Configuration writing functions ---------------------------------------
-void adf_write_config(void) {
+// Configuration writing functions ---------------------------------------
+void RadioAdf7012::adf_write_config(void) {
     adf_write_register_zero();
     adf_write_register_one();
     adf_write_register_two();
     adf_write_register_three();
 }
 
+void RadioAdf7012::adf_write_register_zero(void) {
 
-void adf_write_register_zero(void) {
-
-    unsigned long reg =
+    uint32_t reg =
         (0) |
-        ((unsigned long)(adf_config.r0.frequency_error_correction & 0x7FF) << 2U) |
-        ((unsigned long)(adf_config.r0.r_divider & 0xF ) << 13U) |
-        ((unsigned long)(adf_config.r0.crystal_doubler & 0x1 ) << 17U) |
-        ((unsigned long)(adf_config.r0.crystal_oscillator_disable & 0x1 ) << 18U) |
-        ((unsigned long)(adf_config.r0.clock_out_divider & 0xF ) << 19U) |
-        ((unsigned long)(adf_config.r0.vco_adjust & 0x3 ) << 23U) |
-        ((unsigned long)(adf_config.r0.output_divider & 0x3 ) << 25U);
+        ((uint32_t)(adf_config.r0.frequency_error_correction & 0x7FF) << 2U) |
+        ((uint32_t)(adf_config.r0.r_divider & 0xF ) << 13U) |
+        ((uint32_t)(adf_config.r0.crystal_doubler & 0x1 ) << 17U) |
+        ((uint32_t)(adf_config.r0.crystal_oscillator_disable & 0x1 ) << 18U) |
+        ((uint32_t)(adf_config.r0.clock_out_divider & 0xF ) << 19U) |
+        ((uint32_t)(adf_config.r0.vco_adjust & 0x3 ) << 23U) |
+        ((uint32_t)(adf_config.r0.output_divider & 0x3 ) << 25U);
+
 
 
     adf_write_register(reg);
 }
 
-
-void adf_write_register_one(void) {
-    unsigned long reg =
+void RadioAdf7012::adf_write_register_one(void) {
+    uint32_t reg =
         (1) |
-        ((unsigned long)(adf_config.r1.fractional_n & 0xFFF) << 2) |
-        ((unsigned long)(adf_config.r1.integer_n & 0xFF ) << 14) |
-        ((unsigned long)(adf_config.r1.prescaler & 0x1 ) << 22);
+        ((uint32_t)(adf_config.r1.fractional_n & 0xFFF) << 2) |
+        ((uint32_t)(adf_config.r1.integer_n & 0xFF ) << 14) |
+        ((uint32_t)(adf_config.r1.prescaler & 0x1 ) << 22);
+
+
     adf_write_register(reg);
 }
 
-
-void adf_write_register_two(void) {
-    unsigned long reg =
+void RadioAdf7012::adf_write_register_two(void) {
+    uint32_t reg =
         (2) |
-        ((unsigned long)(adf_config.r2.mod_control & 0x3 ) << 2) |
-        ((unsigned long)(adf_config.r2.gook & 0x1 ) << 4) |
-        ((unsigned long)(adf_config.r2.power_amplifier_level & 0x3F ) << 5) |
-        ((unsigned long)(adf_config.r2.modulation_deviation & 0x1FF) << 11) |
-        ((unsigned long)(adf_config.r2.gfsk_modulation_control & 0x7 ) << 20) |
-        ((unsigned long)(adf_config.r2.index_counter & 0x3 ) << 23);
+        ((uint32_t)(adf_config.r2.mod_control & 0x3 ) << 2) |
+        ((uint32_t)(adf_config.r2.gook & 0x1 ) << 4) |
+        ((uint32_t)(adf_config.r2.power_amplifier_level & 0x3F ) << 5) |
+        ((uint32_t)(adf_config.r2.modulation_deviation & 0x1FF) << 11) |
+        ((uint32_t)(adf_config.r2.gfsk_modulation_control & 0x7 ) << 20) |
+        ((uint32_t)(adf_config.r2.index_counter & 0x3 ) << 23);
+
+
 
     adf_write_register(reg);
 }
 
-
-void adf_write_register_three(void) {
-    unsigned long reg =
+void RadioAdf7012::adf_write_register_three(void) {
+    uint32_t reg =
         (3) |
-        ((unsigned long)(adf_config.r3.pll_enable & 0x1 ) << 2) |
-        ((unsigned long)(adf_config.r3.pa_enable & 0x1 ) << 3) |
-        ((unsigned long)(adf_config.r3.clkout_enable & 0x1 ) << 4) |
-        ((unsigned long)(adf_config.r3.data_invert & 0x1 ) << 5) |
-        ((unsigned long)(adf_config.r3.charge_pump_current & 0x3 ) << 6) |
-        ((unsigned long)(adf_config.r3.bleed_up & 0x1 ) << 8) |
-        ((unsigned long)(adf_config.r3.bleed_down & 0x1 ) << 9) |
-        ((unsigned long)(adf_config.r3.vco_disable & 0x1 ) << 10) |
-        ((unsigned long)(adf_config.r3.muxout & 0xF ) << 11) |
-        ((unsigned long)(adf_config.r3.ld_precision & 0x1 ) << 15) |
-        ((unsigned long)(adf_config.r3.vco_bias & 0xF ) << 16) |
-        ((unsigned long)(adf_config.r3.pa_bias & 0x7 ) << 20) |
-        ((unsigned long)(adf_config.r3.pll_test_mode & 0x1F ) << 23) |
-        ((unsigned long)(adf_config.r3.sd_test_mode & 0xF ) << 28);
+        ((uint32_t)(adf_config.r3.pll_enable & 0x1 ) << 2) |
+        ((uint32_t)(adf_config.r3.pa_enable & 0x1 ) << 3) |
+        ((uint32_t)(adf_config.r3.clkout_enable & 0x1 ) << 4) |
+        ((uint32_t)(adf_config.r3.data_invert & 0x1 ) << 5) |
+        ((uint32_t)(adf_config.r3.charge_pump_current & 0x3 ) << 6) |
+        ((uint32_t)(adf_config.r3.bleed_up & 0x1 ) << 8) |
+        ((uint32_t)(adf_config.r3.bleed_down & 0x1 ) << 9) |
+        ((uint32_t)(adf_config.r3.vco_disable & 0x1 ) << 10) |
+        ((uint32_t)(adf_config.r3.muxout & 0xF ) << 11) |
+        ((uint32_t)(adf_config.r3.ld_precision & 0x1 ) << 15) |
+        ((uint32_t)(adf_config.r3.vco_bias & 0xF ) << 16) |
+        ((uint32_t)(adf_config.r3.pa_bias & 0x7 ) << 20) |
+        ((uint32_t)(adf_config.r3.pll_test_mode & 0x1F ) << 23) |
+        ((uint32_t)(adf_config.r3.sd_test_mode & 0xF ) << 28);
+
+
 
     adf_write_register(reg);
 }
 
-
-void adf_write_register(unsigned long data)
+void RadioAdf7012::adf_write_register(uint32_t data)
 {
 
-//  digitalWrite(SSpin,   HIGH);
-//  digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
-//  digitalWrite(SCKpin,  HIGH);
-//  digitalWrite(MOSIpin, HIGH);
+  digitalWrite(SSpin,   HIGH);
+  digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
+  digitalWrite(SCKpin,  HIGH);
+  digitalWrite(MOSIpin, HIGH);
 
 #if !defined(SPI_BITBANG)   // use SPI library
   // take the SS pin low to select the ADF7012 chip:
-  //digitalWrite(SSpin,LOW);
+  digitalWrite(SSpin,LOW);
 
-  //for (int j = 3; j >= 0; j--) // Loop through the 4 bytes of the unsigned long
-  //{
-  //  byte wordb = (byte) (data >> (j * 8));
-  //  SPI.transfer(wordb);
-  //}
+  for (int j = 3; j >= 0; j--) // Loop through the 4 bytes of the uint32_t
+  {
+    byte wordb = (byte) (data >> (j * 8));
+    SPI.transfer(wordb);
+
+  }
 
   // take the SS pin high to de-select the ADF7012 chip:
-  //digitalWrite(SSpin,HIGH);
+  digitalWrite(SSpin,HIGH);
 
 #else
 
@@ -260,7 +273,7 @@ void adf_write_register(unsigned long data)
     delayMicroseconds(10);
 
     for(i=31; i>=0; i--) {
-        if((data & (unsigned long)(1UL<<i))>>i)
+        if((data & (uint32_t)(1UL<<i))>>i)
             digitalWrite(MOSIpin, HIGH);
         else
             digitalWrite(MOSIpin, LOW);
@@ -281,7 +294,7 @@ void adf_write_register(unsigned long data)
 
 
 
-int adf_lock(void)
+int RadioAdf7012::adf_lock(void)
 {
     // fiddle around with bias and adjust capacity until the vco locks
 
@@ -291,7 +304,7 @@ int adf_lock(void)
     adf_config.r3.pll_enable = 1;
     adf_config.r3.muxout = ADF_MUXOUT_DIGITAL_LOCK;
     adf_write_config();
-    //delay(50);
+    delay(50);
     adf_locked();
 
     while(!adf_locked()) {
@@ -300,11 +313,11 @@ int adf_lock(void)
         adf_config.r3.vco_bias = bias;
         adf_config.r3.muxout = ADF_MUXOUT_DIGITAL_LOCK;
         adf_write_config();
-        //delay(50);
+        delay(50);
         if(++bias == 14) {
             bias = 1;
             if(++adj == 4) {
-                //Serial.println("Couldn't achieve PLL lock :( ");
+                Serial.println("Couldn't achieve PLL lock :( ");
                 // Using best guess defaults:
                 adf_config.r0.vco_adjust = 0;
                 adf_config.r3.vco_bias = 5;
@@ -315,32 +328,30 @@ int adf_lock(void)
     }
 
 
+
     return 1;
 }
 
-
-int adf_locked(void)
+int RadioAdf7012::adf_locked(void)
 {
-  //analogReference(DEFAULT);
-  //analogRead(ADC6_PIN);
-  //int adc = analogRead(ADC6_PIN);
-//  Serial.print("A6 lock: ");
-//  Serial.println(adc);
-  //delay(500);
-  //if (adc > 500U)
-  //{
-   // return 1;
-  //}
-  //else
- // {
-   // return 0;
-  //}
-	return 0; //kaldirilacak
+  analogReference(DEFAULT);
+  analogRead(ADC6_PIN);
+  int adc = analogRead(ADC6_PIN);
+
+  Serial.println(adc);
+  delay(500);
+  if (adc > 500U)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
 }
 
 
-
-void set_freq(unsigned long freq)
+void RadioAdf7012::set_freq(uint32_t freq)
 {
 
   // Set the output divider according to recommended ranges given in ADF7012 datasheet
@@ -351,15 +362,15 @@ void set_freq(unsigned long freq)
   if (freq < 210000000) { adf_config.r0.output_divider = ADF_OUTPUT_DIVIDER_BY_4; };
   if (freq < 130000000) { adf_config.r0.output_divider = ADF_OUTPUT_DIVIDER_BY_8; };
 
-  unsigned long f_pfd = ADF7012_CRYSTAL_FREQ / adf_config.r0.r_divider;
+  uint32_t f_pfd = ADF7012_CRYSTAL_FREQ / adf_config.r0.r_divider;
 
-  unsigned int n = (unsigned int)(freq / f_pfd);
+  uint32_t n = (uint32_t)(freq / f_pfd);
 
   float ratio = (float)freq / (float)f_pfd;
   float rest  = ratio - (float)n;
 
 
-  unsigned long m = (unsigned long)(rest * 4096);
+  uint32_t m = (uint32_t)(rest * 4096);
 
 
 
@@ -369,66 +380,68 @@ void set_freq(unsigned long freq)
 }
 
 
-void setup(void)
+void RadioAdf7012::setup()
 {
+  Serial.println();
+  Serial.println();
+  Serial.println("==============================================================");
+  Serial.println("ADF7012 setup start");
+  Serial.println("==============================================================");
 
 
-  //pinMode(PTT_PIN, OUTPUT);
- // pinMode(SCKpin,  OUTPUT);
-  //pinMode(SSpin,   OUTPUT);
-  //pinMode(MOSIpin, OUTPUT);
-  //pinMode(ADF7012_TX_DATA_PIN, OUTPUT);
+
+  pinMode(PTT_PIN, OUTPUT);
+
+  pinMode(SCKpin,  OUTPUT);
+  pinMode(SSpin,   OUTPUT);
+  pinMode(MOSIpin, OUTPUT);
+  pinMode(ADF7012_TX_DATA_PIN, OUTPUT);
 
 #if !defined(SPI_BITBANG)
   // Set up SPI
-  //SPI.setBitOrder(MSBFIRST);
-  //SPI.setDataMode(SPI_MODE0);
-  //SPI.setClockDivider(SPI_CLOCK_DIV32);
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setDataMode(SPI_MODE0);
+  SPI.setClockDivider(SPI_CLOCK_DIV32);
 
   // initialize SPI:
-  //SPI.begin();
+  SPI.begin();
 #endif
 
   adf_reset_config();
   set_freq(RADIO_FREQUENCY); // Set the default frequency
   adf_write_config();
-  //digitalWrite(ADF7012_TX_DATA_PIN, LOW);
-//  delay(100);
+  digitalWrite(ADF7012_TX_DATA_PIN, LOW);
 
- // Serial.println("ADF7012 setup done");
+  delay(100);
+
+  Serial.println("ADF7012 setup done");
 
 }
 
-
-void ptt_on(void)
+void RadioAdf7012::ptt_on()
 {
 
-  //digitalWrite(PTT_PIN, HIGH);
-  //digitalWrite(ADF7012_TX_DATA_PIN, LOW);
+  digitalWrite(PTT_PIN, HIGH);
+  digitalWrite(ADF7012_TX_DATA_PIN, LOW);
   adf_config.r3.pa_enable = 0;
   adf_config.r2.power_amplifier_level = 0;
   adf_config.r3.muxout = ADF_MUXOUT_REG_READY;
 
   adf_write_config();
-  //delay(100);
+  delay(100);
 
   // Do we have good power on the ADF7012 voltage regulator?
-  //analogReference(DEFAULT);
-  //analogRead(ADC6_PIN);
-  //int adc = analogRead(ADC6_PIN);
-  //Serial.print("ADC6 = ");
-  //Serial.println(adc);
-
-  //if (adc < 500U)  // Power is bad
-  if (5 < 500U)  // 5 yerine adc degeri eklenecek
+  analogReference(DEFAULT);
+  analogRead(ADC6_PIN);
+  int adc = analogRead(ADC6_PIN);
+  Serial.print("ADC6 = ");
+  Serial.println(adc);
+  if (adc < 500U)  // Power is bad
   {
-    //Serial.println("ERROR: Can't power up the ADF7012!");
+    Serial.println("ERROR: Can't power up the ADF7012!");
   }
   else              // Power is good apparently
   {
-
-
-    //predict the exact output frequency
 
 
 
@@ -437,12 +450,14 @@ void ptt_on(void)
     {
       adf_config.r3.pa_enable = 1;
       adf_config.r2.power_amplifier_level = 63; //63 is max power
-//      Serial.println("Turning on the PA");
+
       adf_write_config();
-      //delay(50);
-     // Measure HF output
-      //analogRead(ADC6_PIN); // blank read for equilibration
-      //powerlevel = analogRead(ADC6_PIN);
+      delay(50);
+
+      // Measure HF output
+      analogRead(ADC6_PIN); // blank read for equilibration
+      powerlevel = analogRead(ADC6_PIN);
+
 
       if (powerlevel > 255)
       {
@@ -460,22 +475,20 @@ void ptt_on(void)
   }
 }
 
-
-
-void ptt_off(void)
+void RadioAdf7012::ptt_off()
 {
+
   adf_config.r3.pa_enable = 0;
   adf_config.r2.power_amplifier_level = 0;
   adf_write_config();
-//  delay(100);
+  delay(100);
 
-//  digitalWrite(PTT_PIN, LOW);
-//  digitalWrite(ADF7012_TX_DATA_PIN, LOW);
+  digitalWrite(PTT_PIN, LOW);
+  digitalWrite(ADF7012_TX_DATA_PIN, LOW);
 
 }
 
-
-int get_powerlevel()
+int RadioAdf7012::get_powerlevel()
 {
   return powerlevel;
 }

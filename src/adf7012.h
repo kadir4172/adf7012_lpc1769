@@ -15,17 +15,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#ifndef _ADF7012_H__
-#define _ADF7012_H__
+#ifndef __RADIO_ADF7012_H__
+#define __RADIO_ADF7012_H__
 
-//#include "radio.h"
-/*
+#include "radio.h"
+
 class RadioAdf7012 : public Radio {
   public:
     virtual void setup();
     virtual void ptt_on();
     virtual void ptt_off();
-    virtual void set_freq(unsigned long freq);
+    virtual void set_freq(uint32_t freq);
     virtual int get_powerlevel();
   private:
     void send_cmd(const char *cmd, int cmd_len, char *res_adf7012, int res_len);
@@ -39,15 +39,14 @@ class RadioAdf7012 : public Radio {
     void adf_write_register_one(void);
     void adf_write_register_two(void);
     void adf_write_register_three(void);
-    void adf_write_register(unsigned long data);
+    void adf_write_register(uint32_t data);
     void adf_reset(void);
     int adf_lock(void);
     int adf_locked(void);
     void lock_test(void);
     void divider_test(void);
     void change(void);
-};
-*/
+
 // Register Constants ========================================================
 
 // Register 1 ----------------------------------------------------------------
@@ -99,5 +98,6 @@ class RadioAdf7012 : public Radio {
 
 #define ADF7012_CRYSTAL_FREQ VCXO_FREQ
 
+};
 
 #endif
