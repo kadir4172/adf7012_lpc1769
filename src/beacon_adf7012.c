@@ -15,11 +15,7 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 #include "dac.h"
 #include "common_variables.h"
 
-#define ADF7021_LOAD_REGISTER_ENABLE   LPC_GPIO0->FIOCLR |= (0x1<<0)  //P0.0 LE pini belirlendi
-#define ADF7021_LOAD_REGISTER_DISABLE  LPC_GPIO0->FIOSET |= (0x1<<0)
 
-#define ADF7021_CHIP_POWER_UP    LPC_GPIO0->FIOSET |= (0x1<<1)  //P0.1 CE  pini olarak belirlendi
-#define ADF7021_CHIP_POWER_DOWN  LPC_GPIO0->FIOCLR |= (0x1<<1)
 
 #define PORTNUM  1  //SSP1 portu Spi icin kullanilacak
 

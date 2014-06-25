@@ -28,7 +28,9 @@
 #include <math.h>
 #include "adf7012.h"
 #include <stdint.h>
-
+#include "common_variables.h"
+#include "LPC17xx.h"
+#include <string.h>
 #if !defined(SPI_BITBANG)
 #include <SPI.h>
 #endif
@@ -55,7 +57,7 @@ void adf_write_register_zero(void);
 void adf_write_register_one(void);
 void adf_write_register_two(void);
 void adf_write_register_three(void);
-void adf_write_register(uint32_t);
+void adf_write_register(uint8_t*);
 int adf_locked(void);
 void ptt_off(void);
 
@@ -179,14 +181,13 @@ void adf_reset_register_three(void) {
 
 void adf_reset(void) {
 
-    //digitalWrite(SSpin,   HIGH);
+	ADF7021_CHIP_POWER_UP;
     //digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
     //digitalWrite(SCKpin,  HIGH);
     //digitalWrite(MOSIpin, HIGH);
 
+	Delay_ms(10);
 
-
-    //delay(100);
 }
 
 
@@ -213,8 +214,9 @@ void adf_write_register_zero(void) {
         ((uint32_t)(adf_config.r0.output_divider & 0x3 ) << 25U);
 
 
-
-    adf_write_register(reg);
+    uint8_t reg_ptr[4];
+    memcpy(reg_ptr, &reg, 4);
+    adf_write_register(reg_ptr);
 }
 
 void adf_write_register_one(void) {
@@ -224,8 +226,9 @@ void adf_write_register_one(void) {
         ((uint32_t)(adf_config.r1.integer_n & 0xFF ) << 14) |
         ((uint32_t)(adf_config.r1.prescaler & 0x1 ) << 22);
 
-
-    adf_write_register(reg);
+    uint8_t reg_ptr[3];
+    memcpy(reg_ptr, &reg, 3);
+    adf_write_register(reg_ptr);
 }
 
 void adf_write_register_two(void) {
@@ -239,8 +242,9 @@ void adf_write_register_two(void) {
         ((uint32_t)(adf_config.r2.index_counter & 0x3 ) << 23);
 
 
-
-    adf_write_register(reg);
+    uint8_t reg_ptr[4];
+    memcpy(reg_ptr, &reg, 4);
+    adf_write_register(reg_ptr);
 }
 
 void adf_write_register_three(void) {
@@ -262,14 +266,20 @@ void adf_write_register_three(void) {
         ((uint32_t)(adf_config.r3.sd_test_mode & 0xF ) << 28);
 
 
-
-    adf_write_register(reg);
+    uint8_t reg_ptr[4];
+    memcpy(reg_ptr, &reg, 4);
+    adf_write_register(reg_ptr);
 }
 
-void adf_write_register(uint32_t data)
+void adf_write_register(uint8_t* reg_ptr)
 {
+	//uint32_t* reg_ptr_tmp = &data;
+	//uint8_t* reg_ptr = (uint8_t*)reg_ptr_tmp;
 
-  //digitalWrite(SSpin,   HIGH);
+	ADF7021_CHIP_POWER_UP;
+
+	Write_Adf7012_Reg(reg_ptr);
+	/*
   //digitalWrite(ADF7012_TX_DATA_PIN, HIGH);
   //digitalWrite(SCKpin,  HIGH);
   //digitalWrite(MOSIpin, HIGH);
@@ -315,7 +325,7 @@ void adf_write_register(uint32_t data)
     //digitalWrite(SSpin, HIGH);
 
 #endif
-
+*/
 }
 
 
@@ -331,7 +341,7 @@ int adf_lock(void)
     adf_config.r3.pll_enable = 1;
     adf_config.r3.muxout = ADF_MUXOUT_DIGITAL_LOCK;
     adf_write_config();
-    //delay(50);
+    Delay_ms(5);
     adf_locked();
 
     while(!adf_locked()) {
@@ -340,7 +350,7 @@ int adf_lock(void)
         adf_config.r3.vco_bias = bias;
         adf_config.r3.muxout = ADF_MUXOUT_DIGITAL_LOCK;
         adf_write_config();
-        //delay(50);
+        Delay_ms(5);
         if(++bias == 14) {
             bias = 1;
             if(++adj == 4) {
@@ -366,7 +376,7 @@ int adf_locked(void)
   //int adc = analogRead(ADC6_PIN);
   int adc = 5; //kadir
   //Serial.println(adc);
-  //delay(500);
+  Delay_ms(50);
   if (adc > 500U)
   {
     return 1;
@@ -419,27 +429,15 @@ void setup()
 
   //pinMode(PTT_PIN, OUTPUT);
 
-  //pinMode(SCKpin,  OUTPUT);
-  //pinMode(SSpin,   OUTPUT);
-  //pinMode(MOSIpin, OUTPUT);
-  //pinMode(ADF7012_TX_DATA_PIN, OUTPUT);
+  Gpio_Config();
 
-#if !defined(SPI_BITBANG)
-  // Set up SPI
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setClockDivider(SPI_CLOCK_DIV32);
-
-  // initialize SPI:
-  SPI.begin();
-#endif
 
   adf_reset_config();
   set_freq(RADIO_FREQUENCY); // Set the default frequency
   adf_write_config();
   //digitalWrite(ADF7012_TX_DATA_PIN, LOW);
 
-  //delay(100);
+  Delay_ms(10);
 
   //Serial.println("ADF7012 setup done");
 
@@ -455,7 +453,7 @@ void ptt_on()
   adf_config.r3.muxout = ADF_MUXOUT_REG_READY;
 
   adf_write_config();
-  //delay(100);
+  Delay_ms(10);
 
   // Do we have good power on the ADF7012 voltage regulator?
   //analogReference(DEFAULT);
@@ -480,7 +478,7 @@ void ptt_on()
       adf_config.r2.power_amplifier_level = 63; //63 is max power
 
       adf_write_config();
-      //delay(50);
+      Delay_ms(5);
 
       // Measure HF output
       //analogRead(ADC6_PIN); // blank read for equilibration
@@ -509,7 +507,7 @@ void ptt_off()
   adf_config.r3.pa_enable = 0;
   adf_config.r2.power_amplifier_level = 0;
   adf_write_config();
-  //delay(100);
+  Delay_ms(10);
 
   //digitalWrite(PTT_PIN, LOW);
   //digitalWrite(ADF7012_TX_DATA_PIN, LOW);
