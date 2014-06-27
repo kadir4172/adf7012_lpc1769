@@ -64,14 +64,15 @@ int main (void)
   DACInit();                      // 1.2kHz ve 2kHz sinus olusturmak icin DAC peripheral i baslatalim
   ADCInit(ADC_CLK);               // 1Mhz ADC peripheral enable
   Delay_ms(10);
-
+  Delay_ms(200);
+  //Init_Adf7012();
   Radio_Setup();				  //Adf7012 registerlarini default reset modunda yazan fonksyionu cagiralim
   Delay_ms(200);
   Ptt_On();
   Init_Timer(10);                 //10us intervalinde timer0 baslat
   Enable_Timer();                 //Timer0 enable et
 
-  //adf_locked();
+
   while ( 1 );                    //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
   return 0;
 }
