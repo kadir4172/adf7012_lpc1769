@@ -243,7 +243,7 @@
 // This is the pin used by the MX146 radio to signal full RF
 //#define MX146_READY_PIN   2 // Not available at PecanPico
 
-#define VCXO_FREQ 27000000L
+#define VCXO_FREQ 20000000L
 
 //#define ADF7012_CRYSTAL_FREQ 19440000L
 //#define ADF7012_CRYSTAL_FREQ 10000000L

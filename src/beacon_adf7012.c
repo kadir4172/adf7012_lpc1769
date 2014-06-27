@@ -15,8 +15,9 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 #include "dac.h"
 #include "adc.h"
 #include "common_variables.h"
-
-
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define PORTNUM  1  //SSP1 portu Spi icin kullanilacak
 
@@ -28,13 +29,16 @@ uint8_t timeout_flag = 0;
 _Bool Systick_Init(void);
 _Bool Delay_ms(uint32_t);
 _Bool Gpio_Config(void);
-_Bool Write_Adf7012_Reg(uint8_t*);
+_Bool Write_Adf7012_Reg(uint8_t*, uint8_t);
 _Bool Init_Adf7012(void);
 uint32_t Set_Delay (uint32_t);
 uint8_t Check_Delay(uint32_t);
 _Bool Read_Adf7012_Muxout(uint32_t*);
 /*Function Prototypes*/
 
+
+extern void Radio_Setup(void);
+extern void Ptt_On(void);
 //uint32_t test;
 uint32_t timeout_check;
 /******************************************************************************
@@ -47,7 +51,7 @@ int main (void)
   Systick_Init();      //10 ms de bir tick atacak sekilde Systick i baslat
 
   Gpio_Config();       //Beacon MCU da kullanilacak pinleri konfigure et
-  ADCInit(ADC_CLK);
+
 
   ADF7021_CHIP_POWER_DOWN;        //CE pini asagi cek
   Delay_ms(10);
@@ -58,12 +62,16 @@ int main (void)
 
   SSP1Init();			          // SSP1 portunda SPI konusalim*/
   DACInit();                      // 1.2kHz ve 2kHz sinus olusturmak icin DAC peripheral i baslatalim
+  ADCInit(ADC_CLK);               // 1Mhz ADC peripheral enable
   Delay_ms(10);
 
-  Init_Adf7012();                 //Adf7012 registerlarini istedigimiz konfigurasyonda yazalim
+  Radio_Setup();				  //Adf7012 registerlarini default reset modunda yazan fonksyionu cagiralim
+  Delay_ms(200);
+  Ptt_On();
   Init_Timer(10);                 //10us intervalinde timer0 baslat
   Enable_Timer();                 //Timer0 enable et
 
+  //adf_locked();
   while ( 1 );                    //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
   return 0;
 }
@@ -172,16 +180,19 @@ _Bool Read_Adf7012_Muxout(uint32_t* read_val){
 ** Returned value:		returns TRUE if successfull
 **
 ******************************************************************************/
-_Bool Write_Adf7012_Reg(uint8_t* reg_value){
+_Bool Write_Adf7012_Reg(uint8_t* reg_value, uint8_t size_of_reg){
 
+	//*reg_value = 0x55;
   Delay_ms(10);
   ADF7021_LOAD_REGISTER_ENABLE;
+  Delay_ms(1);
 force_register:
-  SSPSend(PORTNUM, reg_value, sizeof(reg_value));
+  SSPSend(PORTNUM, reg_value, size_of_reg);
   if(timeout_flag != 0){
       timeout_flag = 0;
       goto force_register;
     }
+  Delay_ms(1);
   ADF7021_LOAD_REGISTER_DISABLE;
   Delay_ms(10);
   return TRUE;
@@ -262,6 +273,26 @@ force_register3:
 return TRUE;
 }
 
+/******************************************************************************
+** Function name:		Reverse_Array
+**
+** Parameters:			sirasi degistirilecek array ve uzunlugu
+** Returned value:		returns TRUE if successfull
+**
+******************************************************************************/
+_Bool Reverse_Array(uint8_t* input,uint8_t length){
+  uint8_t i = 0;
+  uint8_t* buffer_array = malloc(sizeof(uint8_t) * length);
+  memcpy(buffer_array, input, length);
+
+  for(i = 0; i<length; i++){
+	  *(input+i) = *(buffer_array+(length-1)-i);
+  }
+
+  free (buffer_array);
+
+return TRUE;
+}
 
 /******************************************************************************
 **                            End Of File
