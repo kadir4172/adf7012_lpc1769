@@ -24,4 +24,6 @@ extern _Bool Gpio_Config(void);
 #define ADF7021_CHIP_POWER_UP    LPC_GPIO0->FIOSET |= (0x1<<1)  //P0.1 CE  pini olarak belirlendi
 #define ADF7021_CHIP_POWER_DOWN  LPC_GPIO0->FIOCLR |= (0x1<<1)
 
+#define ADC_CHANNEL 7
+
 #endif /* COMMON_VARIABLES_H_ */

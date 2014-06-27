@@ -13,6 +13,7 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 #include "ssp.h"
 #include "timer.h"
 #include "dac.h"
+#include "adc.h"
 #include "common_variables.h"
 
 
@@ -31,9 +32,10 @@ _Bool Write_Adf7012_Reg(uint8_t*);
 _Bool Init_Adf7012(void);
 uint32_t Set_Delay (uint32_t);
 uint8_t Check_Delay(uint32_t);
+_Bool Read_Adf7012_Muxout(uint32_t*);
 /*Function Prototypes*/
 
-
+//uint32_t test;
 uint32_t timeout_check;
 /******************************************************************************
 **   Main Function  main()
@@ -45,6 +47,7 @@ int main (void)
   Systick_Init();      //10 ms de bir tick atacak sekilde Systick i baslat
 
   Gpio_Config();       //Beacon MCU da kullanilacak pinleri konfigure et
+  ADCInit(ADC_CLK);
 
   ADF7021_CHIP_POWER_DOWN;        //CE pini asagi cek
   Delay_ms(10);
@@ -60,7 +63,6 @@ int main (void)
   Init_Adf7012();                 //Adf7012 registerlarini istedigimiz konfigurasyonda yazalim
   Init_Timer(10);                 //10us intervalinde timer0 baslat
   Enable_Timer();                 //Timer0 enable et
-
 
   while ( 1 );                    //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
   return 0;
@@ -138,10 +140,32 @@ uint8_t Check_Delay(uint32_t counter)
   return(((counter - Systick_Counter)& 0x80000000) >> 27);
 }
 
+/******************************************************************************
+** Function name:		Read_Adf7012_Muxout
+**
+** Descriptions:		adf7012 entegresinin muxout pininde ADC ile data okur
+** Returned value:		returns TRUE if successfull
+**
+******************************************************************************/
+_Bool Read_Adf7012_Muxout(uint32_t* read_val){
+
+  Delay_ms(1);
+
+  *read_val = ADCRead(ADC_CHANNEL);
+
+  //conversion not succesful
+  if(timeout_flag != 0){
+      timeout_flag = 0;
+      return FALSE;
+    }
+
+  Delay_ms(1);
+  return TRUE;
+}
 
 
 /******************************************************************************
-** Function name:		write_adf7012_reg
+** Function name:		Write_Adf7012_Reg
 **
 ** Descriptions:		adf7012 entegresine istenen register degerini yazar
 ** Parameters:			reg_value , yazilacak byte dizisinin ilk karaketerine pointer
@@ -165,7 +189,7 @@ force_register:
 
 
 /******************************************************************************
-** Function name:		init_adf7012
+** Function name:		Init_Adf7012
 **
 ** Descriptions:		adf7012 entegresini OOK modunda istenen konfigurasyonda baslatir
 ** Returned value:		returns TRUE if successfull

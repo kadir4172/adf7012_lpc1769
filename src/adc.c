@@ -22,6 +22,7 @@
 #include "LPC17xx.h"
 #include "type.h"
 #include "adc.h"
+#include "common_variables.h"
 
 volatile uint32_t ADCValue;
 
@@ -109,6 +110,7 @@ uint32_t ADCRead( uint8_t channelNum )
   LPC_ADC->CR |= (1 << 24) | (1 << channelNum);	
 				/* switch channel,start A/D convert */
 
+  timeout_check = Set_Delay(1); //10ms lik timeout exception yaratalim
   while ( 1 )			/* wait until end of A/D convert */
   {
 	regVal = LPC_ADC->DR[channelNum];
@@ -117,6 +119,11 @@ uint32_t ADCRead( uint8_t channelNum )
 	{
 	  break;
 	}
+
+	if(Check_Delay(timeout_check)){
+	  timeout_flag |= 0xFF;
+	  break;
+    }
   }
 
   LPC_ADC->CR &= 0xF8FFFFFF;	/* stop ADC now */
