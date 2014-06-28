@@ -22,7 +22,7 @@
 #include "LPC17xx.h"
 #include "type.h"
 #include "adc.h"
-#include "common_variables.h"
+#include "utility.h"
 
 volatile uint32_t ADCValue;
 

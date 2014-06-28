@@ -20,7 +20,7 @@
 ****************************************************************************/
 #include "LPC17xx.h"			/* LPC17xx Peripheral Registers */
 #include "ssp.h"
-#include "common_variables.h"
+#include "utility.h"
 
 /* statistics of all the interrupts */
 volatile uint32_t interrupt0RxStat = 0;

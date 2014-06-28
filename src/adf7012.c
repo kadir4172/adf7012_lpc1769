@@ -28,15 +28,11 @@
 #include <math.h>
 #include "adf7012.h"
 #include <stdint.h>
-#include "common_variables.h"
+#include "utility.h"
 #include "LPC17xx.h"
 #include <string.h>
 
-
-const int MAX_RES = 16;
-//char res_adf7012[MAX_RES];
 uint32_t powerlevel;
-
 
 //Function Prototypes
 void Adf_Reset_Register_Zero(void);
@@ -100,10 +96,6 @@ typedef struct {
 } Adf_Config;
 
 Adf_Config adf_config;
-
-
-// Write directly to AVR port in SPIwrite() instead of using digitalWrite()
-//#define FAST_IO
 
 // Configuration functions ===================================================
 

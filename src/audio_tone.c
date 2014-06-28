@@ -30,7 +30,7 @@
 
 #include "config.h"
 #include "audio_tone.h"
-#include "common_variables.h"
+#include "utility.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -119,16 +119,13 @@ uint8_t modem_packet[MODEM_MAX_PACKET];
 
 
 // Source-specific
-//static const uint8_t REST_DUTY       = 127;
 static const int TABLE_SIZE          = sizeof(sine_table);
-//static const uint32_t PLAYBACK_RATE   = F_CPU / 256;    // 62.5KHz @ F_CPU=16MHz; 31.25kHz @ 8MHz
 static const uint32_t PLAYBACK_RATE   = 100000;    // 100KHz (10us lik timer baslatilacak)
 static const int BAUD_RATE                 = 1200;
 static  uint8_t SAMPLES_PER_BAUD ;
 
 static uint32_t PHASE_DELTA_1200;//
 static uint32_t PHASE_DELTA_2200;
-
 
 static uint8_t current_byte;
 static uint8_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
@@ -138,9 +135,6 @@ static _Bool MODEM_TRANSMITTING = FALSE;
 static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;                 // Next bit to be sent out
-
-extern _Bool Send_Vcxo_Signal(uint32_t);
-
 
 void Modem_Init(){
 	SAMPLES_PER_BAUD = (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667

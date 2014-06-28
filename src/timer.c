@@ -22,8 +22,6 @@
 #include "type.h"
 #include "timer.h"
 #include "dac.h"
-#include "common_variables.h"
-
 
 extern void Sinus_Generator(void);
 

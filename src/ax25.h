@@ -18,7 +18,6 @@ typedef struct  {
 
 //void ax25_send_header(struct s_address *addresses, int num_addresses);
 void Ax25_Send_Header(s_address addresses[], int num_addresses);
-
 void Ax25_Send_Byte(uint8_t byte);
 void Ax25_Send_String(const char *string);
 void Ax25_Send_Footer();
