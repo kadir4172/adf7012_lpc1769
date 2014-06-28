@@ -36,6 +36,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "LPC17xx.h"                        /* LPC17xx definitions */
+#include "dac.h"
+#include "timer.h"
 
 #if RADIO_CLASS == RadioAdf7012
   #include "adf7012.h"
@@ -65,8 +67,8 @@
 // program memory area", which can be safely ignored:
 // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734
 
-/*
-PROGMEM const prog_uchar sine_table[512] = {
+
+const uint8_t sine_table[512] = {
   127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 143, 144, 146, 147, 149, 150, 152, 153, 155, 156, 158,
   159, 161, 163, 164, 166, 167, 168, 170, 171, 173, 174, 176, 177, 179, 180, 182, 183, 184, 186, 187, 188,
   190, 191, 193, 194, 195, 197, 198, 199, 200, 202, 203, 204, 205, 207, 208, 209, 210, 211, 213, 214, 215,
@@ -93,12 +95,12 @@ PROGMEM const prog_uchar sine_table[512] = {
    83,  84,  86,  87,  88,  90,  91,  93,  95,  96,  98,  99, 101, 102, 104, 105, 107, 108, 110, 111, 113,
   115, 116, 118, 119, 121, 122, 124, 125
 };
-*/
+
 
 // This is a 8% scaled down version of the above
 // in order to operate the PWM not too close to its extreme limits.
 // Trying to prevent distortion this way.
-
+/*
 const uint8_t sine_table[512] = {
 128,128,128,128,128,128,128,128,129,129,129,129,129,129,129,129,129,130,130,130,130,
 130,130,130,130,131,131,131,131,131,131,131,131,132,132,132,132,132,132,132,132,132,
@@ -126,7 +128,7 @@ const uint8_t sine_table[512] = {
 124,124,124,124,124,125,125,125,125,125,125,125,125,126,126,126,126,126,126,126,126,
 126,127,127,127,127,127,127,127
 };
-
+*/
 /* The sine_table is the carrier signal. To achieve phase continuity, each tone
  * starts at the index where the previous one left off. By changing the stride of
  * the index (phase_delta) we get 1200 or 2200 Hz. The PHASE_DELTA_XXXX values
@@ -154,7 +156,7 @@ static uint32_t PHASE_DELTA_2200;
 static uint8_t current_byte;
 static uint8_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
 
-
+_Bool PTT_OFF = FALSE;
 static _Bool go = FALSE;
 static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
@@ -242,6 +244,11 @@ void modem_flush_frame()
   // Key the radio
   Ptt_On();
 
+  Delay_ms(100);
+  Reset_Timer();
+  Init_Timer(10);                 //10us intervalinde timer0 baslat
+  Enable_Timer();                 //Timer0 enable et
+
   // Clear the overflow flag, so that the interrupt doesn't go off
   // immediately and overrun the next one (p.163).
   //TIFR2 |= _BV(TOV2);       // Yeah, writing a 1 clears the flag.
@@ -251,17 +258,25 @@ void modem_flush_frame()
 }
 
 // This is called at PLAYBACK_RATE Hz to load the next sample.
-void ISR(TIMER2_OVF_vect) {
+void Sinus_Generator(void) {
+	static uint32_t Audio_Signal = 0;
 
-  if (go) {
+
+if (go) {
 
     // If done sending packet
     if (packet_pos == modem_packet_size) {
       go = FALSE;             // End of transmission
       //OCR2 = REST_DUTY;       // Output 0v (after DC coupling)
-      Ptt_Off();        // Release PTT
+
       //TIMSK2 &= ~_BV(TOIE2);  // Disable playback interrupt.
-      goto end_isr;           // Done, gather ISR stats
+      Reset_Timer();
+      Disable_Timer();
+      LPC_DAC->CR = 0;   //DAC cikisini sifirlayalim
+
+      //LPC_TIM0->TCR = 0;
+      PTT_OFF = TRUE;
+      goto end_generator;           // Done, gather ISR stats
     }
 
     // If sent SAMPLES_PER_BAUD already, go to the next bit
@@ -278,7 +293,8 @@ void ISR(TIMER2_OVF_vect) {
 
     phase += phase_delta;
 
-    //OCR2 = pgm_read_byte_near(sine_table + ((phase >> 7) & (TABLE_SIZE - 1)));
+    Audio_Signal = *(sine_table + ((phase >> 7) & (TABLE_SIZE - 1)));
+    LPC_DAC->CR = ((Audio_Signal) << 6) | DAC_BIAS;
 
     if(++current_sample_in_baud == SAMPLES_PER_BAUD) {
       current_sample_in_baud = 0;
@@ -286,7 +302,7 @@ void ISR(TIMER2_OVF_vect) {
     }
   }
 
-end_isr:
+end_generator:
 
   return;
 }

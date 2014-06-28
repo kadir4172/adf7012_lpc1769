@@ -18,6 +18,7 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define PORTNUM  1  //SSP1 portu Spi icin kullanilacak
 
@@ -36,7 +37,13 @@ uint8_t Check_Delay(uint32_t);
 _Bool Read_Adf7012_Muxout(uint32_t*);
 /*Function Prototypes*/
 
+extern  _Bool PTT_OFF;
+extern void Ptt_Off(void);
 
+extern void modem_setup(void);
+extern void modem_flush_frame(void);
+extern uint8_t modem_packet[512];
+extern uint32_t modem_packet_size;
 
 //uint32_t test;
 uint32_t timeout_check;
@@ -64,15 +71,33 @@ int main (void)
   ADCInit(ADC_CLK);               // 1Mhz ADC peripheral enable
   Delay_ms(10);
   Delay_ms(200);
+
+  //Radio_Setup();				  //Adf7012 registerlarini default reset modunda yazan fonksyionu cagiralim
+  //Delay_ms(200);
+  //Ptt_On();
   //Init_Adf7012();
-  Radio_Setup();				  //Adf7012 registerlarini default reset modunda yazan fonksyionu cagiralim
-  Delay_ms(200);
-  Ptt_On();
-  Init_Timer(10);                 //10us intervalinde timer0 baslat
-  Enable_Timer();                 //Timer0 enable et
+  //Init_Timer(10);                 //10us intervalinde timer0 baslat
+  //Enable_Timer();                 //Timer0 enable et
 
+uint8_t data = 0x00;
+uint16_t j = 0;
+for(j = 0; j < 256; j++){
+	memcpy(&modem_packet[j], &data, 1);
+}
+modem_setup();
+Delay_ms(100);
 
-  while ( 1 );                    //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
+  while ( 1 )                   //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
+  {
+	  if(PTT_OFF){
+		  Ptt_Off();
+		  PTT_OFF  = FALSE;
+	  }
+	  Delay_ms(600);
+	  modem_packet_size=256*8;
+	  modem_flush_frame();
+
+  }
   return 0;
 }
 
