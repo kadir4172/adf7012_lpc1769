@@ -27,18 +27,12 @@
 #include "config.h"
 #include "audio_tone.h"
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include <Arduino.h>
-#else
-//#include <WProgram.h>
-#endif
-// Module globals
+//Globals
 uint16_t crc;
-int ones_in_a_row;
+int16_t ones_in_a_row;
 
-// Module functions
-static void
-update_crc(uint8_t bit)
+
+static void Update_Crc(uint8_t bit)
 {
   crc ^= bit;
   if (crc & 1)
@@ -47,12 +41,11 @@ update_crc(uint8_t bit)
     crc = crc >> 1;
 }
 
-static void
-send_byte(uint8_t byte)
+static void Send_Byte(uint8_t byte)
 {
   int i;
   for (i = 0; i < 8; i++) {
-    update_crc((byte >> i) & 1);
+    Update_Crc((byte >> i) & 1);
     if ((byte >> i) & 1) {
       // Next bit is a '1'
       if (modem_packet_size >= MODEM_MAX_PACKET * 8)  // Prevent buffer overrun
@@ -71,16 +64,14 @@ send_byte(uint8_t byte)
 }
 
 // Exported functions
-void
-ax25_send_byte(uint8_t byte)
+void Ax25_Send_Byte(uint8_t byte)
 {
   // Wrap around send_byte, but prints debug info
-  send_byte(byte);
+  Send_Byte(byte);
 
 }
 
-void
-ax25_send_sync()
+void Ax25_Send_Sync()
 {
   uint8_t byte = 0x00;
   int i;
@@ -94,8 +85,7 @@ ax25_send_sync()
   }
 }
 
-void
-ax25_send_flag()
+void Ax25_Send_Flag()
 {
   uint8_t byte = 0x7e;
   int i;
@@ -109,17 +99,15 @@ ax25_send_flag()
   }
 }
 
-void
-ax25_send_string(const char *string)
+void Ax25_Send_String(const char *string)
 {
   int i;
   for (i = 0; string[i]; i++) {
-    ax25_send_byte(string[i]);
+    Ax25_Send_Byte(string[i]);
   }
 }
 
-void
-ax25_send_header(s_address addresses[], int num_addresses)
+void Ax25_Send_Header(s_address addresses[], int num_addresses)
 {
   int i, j;
   modem_packet_size = 0;
@@ -129,57 +117,55 @@ ax25_send_header(s_address addresses[], int num_addresses)
   // Send sync ("a bunch of 0s")
   for (i = 0; i < 60; i++)
   {
-    ax25_send_sync();
+    Ax25_Send_Sync();
   }
 
   //start the actual frame. Send 3 of them (one empty frame and the real start)
   for (i = 0; i < 3; i++)
   {
-    ax25_send_flag();
+    Ax25_Send_Flag();
   }
 
   for (i = 0; i < num_addresses; i++) {
     // Transmit callsign
     for (j = 0; addresses[i].callsign[j]; j++)
-      send_byte(addresses[i].callsign[j] << 1);
+      Send_Byte(addresses[i].callsign[j] << 1);
     // Transmit pad
     for ( ; j < 6; j++)
-      send_byte(' ' << 1);
+      Send_Byte(' ' << 1);
     // Transmit SSID. Termination signaled with last bit = 1
     if (i == num_addresses - 1)
-      send_byte(('0' + addresses[i].ssid) << 1 | 1);
+      Send_Byte(('0' + addresses[i].ssid) << 1 | 1);
     else
-      send_byte(('0' + addresses[i].ssid) << 1);
+      Send_Byte(('0' + addresses[i].ssid) << 1);
   }
 
   // Control field: 3 = APRS-UI frame
-  send_byte(0x03);
+  Send_Byte(0x03);
 
   // Protocol ID: 0xf0 = no layer 3 data
-  send_byte(0xf0);
+  Send_Byte(0xf0);
 }
 
-void
-ax25_send_footer()
+void Ax25_Send_Footer()
 {
   // Save the crc so that it can be treated it atomically
   uint16_t final_crc = crc;
 
   // Send the CRC
-  send_byte(~(final_crc & 0xff));
+  Send_Byte(~(final_crc & 0xff));
   final_crc >>= 8;
-  send_byte(~(final_crc & 0xff));
+  Send_Byte(~(final_crc & 0xff));
 
   // Signal the end of frame
-  ax25_send_flag();
+  Ax25_Send_Flag();
 
 }
 
-void
-ax25_flush_frame()
+void Ax25_Flush_Frame()
 {
   // Key the transmitter and send the frame
-  modem_flush_frame();
+  Modem_Flush_Frame();
 }
 
 

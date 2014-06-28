@@ -31,7 +31,6 @@
 #include "config.h"
 #include "audio_tone.h"
 #include "common_variables.h"
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,15 +38,6 @@
 #include "dac.h"
 #include "timer.h"
 #include "adf7012.h"
-
-
-
-// Module Constants
-
-// This procudes a "warning: only initialized variables can be placed into
-// program memory area", which can be safely ignored:
-// http://gcc.gnu.org/bugzilla/show_bug.cgi?id=34734
-
 
 const uint8_t sine_table[512] = {
   127, 129, 130, 132, 133, 135, 136, 138, 139, 141, 143, 144, 146, 147, 149, 150, 152, 153, 155, 156, 158,
@@ -143,11 +133,14 @@ static uint32_t PHASE_DELTA_2200;
 static uint8_t current_byte;
 static uint8_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
 
-static _Bool go = FALSE;
+static _Bool MODEM_TRANSMITTING = FALSE;
 
 static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;                 // Next bit to be sent out
+
+extern _Bool Send_Vcxo_Signal(uint32_t);
+
 
 void Modem_Init(){
 	SAMPLES_PER_BAUD = (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667
@@ -163,26 +156,26 @@ void Modem_Setup()
 
 _Bool Modem_Busy()
 {
-  return go;
+  return MODEM_TRANSMITTING;
 }
 
-int modem_get_powerlevel()
+int Modem_Get_Powerlevel()
 {
   return Get_Powerlevel();
 }
 
-void modem_set_tx_freq(uint32_t freq)
+void Modem_Set_Tx_Freq(uint32_t freq)
 {
   Set_Freq(freq);
 }
 
-void modem_flush_frame()
+void Modem_Flush_Frame()
 {
   phase_delta = PHASE_DELTA_1200;
   phase = 0;
   packet_pos = 0;
   current_sample_in_baud = 0;
-  go = TRUE;
+  MODEM_TRANSMITTING = TRUE;
 
   // Key the radio
   Ptt_On();
@@ -195,19 +188,21 @@ void modem_flush_frame()
 
 // This is called at PLAYBACK_RATE Hz to load the next sample.
 void Sinus_Generator(void) {
-	static uint32_t Audio_Signal = 0;
 
-if (go) {
+	uint32_t Audio_Signal;
+
+if (MODEM_TRANSMITTING) {
 
     // If done sending packet
     if (packet_pos == modem_packet_size) {
-      go = FALSE;             // End of transmission
+      MODEM_TRANSMITTING = FALSE;             // End of transmission
       //OCR2 = REST_DUTY;       // Output 0v (after DC coupling)
 
       //TIMSK2 &= ~_BV(TOIE2);  // Disable playback interrupt.
       Reset_Timer();
       Disable_Timer();
-      LPC_DAC->CR = 0;   //DAC cikisini sifirlayalim
+      Send_Vcxo_Signal(0); //DAC cikisini sifirlayalim
+      //LPC_DAC->CR = 0;   //DAC cikisini sifirlayalim
 
       //LPC_TIM0->TCR = 0;
       PTT_OFF = TRUE;
@@ -229,8 +224,8 @@ if (go) {
     phase += phase_delta;
 
     Audio_Signal = *(sine_table + ((phase >> 7) & (TABLE_SIZE - 1)));
-    LPC_DAC->CR = ((Audio_Signal) << 6) | DAC_BIAS;
-
+    //LPC_DAC->CR = ((Audio_Signal) << 6) | DAC_BIAS;
+    Send_Vcxo_Signal(((Audio_Signal << 6) | DAC_BIAS)); //DAC cikisina ornegi yazalim
     if(++current_sample_in_baud == SAMPLES_PER_BAUD) {
       current_sample_in_baud = 0;
       packet_pos++;

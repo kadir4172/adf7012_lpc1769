@@ -17,12 +17,12 @@ typedef struct  {
 } s_address;
 
 //void ax25_send_header(struct s_address *addresses, int num_addresses);
-void ax25_send_header(s_address addresses[], int num_addresses);
+void Ax25_Send_Header(s_address addresses[], int num_addresses);
 
-void ax25_send_byte(uint8_t byte);
-void ax25_send_string(const char *string);
-void ax25_send_footer();
-void ax25_flush_frame();
+void Ax25_Send_Byte(uint8_t byte);
+void Ax25_Send_String(const char *string);
+void Ax25_Send_Footer();
+void Ax25_Flush_Frame();
 
 
 

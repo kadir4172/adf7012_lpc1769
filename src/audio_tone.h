@@ -34,12 +34,12 @@
 extern uint8_t modem_packet[MODEM_MAX_PACKET];  // Upper layer data
 extern uint32_t modem_packet_size;                // in bits
 
-void modem_setup();
-void modem_start();
-void modem_flush_frame();
-void modem_set_tx_freq(uint32_t freq);
-int modem_get_powerlevel();
-_Bool modem_busy();
+void Modem_Setup();
+void Modem_Start();
+void Modem_Flush_Frame();
+void Modem_Set_Tx_Freq(uint32_t freq);
+int Modem_Get_Powerlevel();
+_Bool Modem_Busy();
 
 #endif
 

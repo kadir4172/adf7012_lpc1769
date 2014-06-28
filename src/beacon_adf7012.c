@@ -41,10 +41,10 @@ _Bool Read_Adf7012_Muxout(uint32_t*);
 extern  _Bool PTT_OFF;
 extern void Ptt_Off(void);
 
-extern void modem_setup(void);
-extern void modem_flush_frame(void);
-extern uint8_t modem_packet[512];
-extern uint32_t modem_packet_size;
+extern void Modem_Setup(void);
+extern void Modem_Flush_Frame(void);
+//extern uint8_t modem_packet[512];
+//extern uint32_t modem_packet_size;
 
 //uint32_t test;
 uint32_t timeout_check;
@@ -80,15 +80,20 @@ int main (void)
   //Init_Timer(10);                 //10us intervalinde timer0 baslat
   //Enable_Timer();                 //Timer0 enable et
 
+  /*
 uint8_t data = 0x00;
 uint16_t j = 0;
 for(j = 0; j < 256; j++){
 	memcpy(&modem_packet[j], &data, 1);
 }
+*/
 
+  s_address beacon_address[1] = {{"TAMSAT", 5}};
+  Ax25_Send_Header(beacon_address,1);
+  Ax25_Send_String("Hello World!");
+  Ax25_Send_Footer();
 
-
-modem_setup();
+Modem_Setup();
 Delay_ms(100);
 
   while ( 1 )                   //main de yapilacak is kalmadi bundan sonra isr lerle devam edecegiz
@@ -97,10 +102,10 @@ Delay_ms(100);
 		  Ptt_Off();
 		  PTT_OFF  = FALSE;
 	  }
-	  Delay_ms(600);
-	 // modem_packet_size=256*8;
-	  modem_flush_frame();
 
+	  //modem_packet_size=256*8;
+	  Modem_Flush_Frame();
+	  Delay_ms(600);
   }
   return 0;
 }
@@ -227,7 +232,19 @@ force_register:
   return TRUE;
 }
 
+/******************************************************************************
+** Function name:		Send_Vcxo_Signal
+**
+** Descriptions:		Analog output pinine istenilen degeri yazar
+** Parameters:			DAC cikisina yazilacak 32 bit veri
+** Returned value:		returns TRUE if successfull
+**
+******************************************************************************/
+_Bool Send_Vcxo_Signal(uint32_t value){
 
+	LPC_DAC->CR = value;   //DAC cikisina value degerini yaz
+    return TRUE;
+}
 /******************************************************************************
 ** Function name:		Init_Adf7012
 **
