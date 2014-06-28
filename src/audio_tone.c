@@ -38,28 +38,9 @@
 #include "LPC17xx.h"                        /* LPC17xx definitions */
 #include "dac.h"
 #include "timer.h"
+#include "adf7012.h"
 
-#if RADIO_CLASS == RadioAdf7012
-  #include "adf7012.h"
-#endif
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include <Arduino.h>
-#else
-//#include <WProgram.h>
-#endif
-
-#include <stdint.h>
-//#include <avr/interrupt.h>
-//#include <avr/io.h>
-//#include <avr/pgmspace.h>
-
-#if AUDIO_PIN == 3
-#  define OCR2 OCR2B
-#endif
-#if AUDIO_PIN == 11
-#  define OCR2 OCR2A
-#endif
 
 // Module Constants
 
@@ -144,7 +125,7 @@ const uint8_t sine_table[512] = {
 static const uint8_t REST_DUTY       = 127;
 static const int TABLE_SIZE          = sizeof(sine_table);
 //static const uint32_t PLAYBACK_RATE   = F_CPU / 256;    // 62.5KHz @ F_CPU=16MHz; 31.25kHz @ 8MHz
-static const uint32_t PLAYBACK_RATE   = 100000;    // 100KHz (10us lik timer baslatilacak)
+static const uint32_t PLAYBACK_RATE   = 200000;    // 100KHz (10us lik timer baslatilacak)
 static const int BAUD_RATE                 = 1200;
 static  uint8_t SAMPLES_PER_BAUD ;//= (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667
 
@@ -162,14 +143,11 @@ static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;                 // Next bit to be sent out
 
-// The radio (class defined in config.h)
-//static RADIO_CLASS radio;
-
 // Exported globals
 uint32_t modem_packet_size = 0;
 uint8_t modem_packet[MODEM_MAX_PACKET];
 
-void modem_init(){
+void Modem_Init(){
 	SAMPLES_PER_BAUD = (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667
 	PHASE_DELTA_1200 = (((TABLE_SIZE * 1200L) << 7) / PLAYBACK_RATE); // Fixed point 9.7 // 1258 / 2516
 	PHASE_DELTA_2200 = (((TABLE_SIZE * 2200L) << 7) / PLAYBACK_RATE); // 2306 / 4613
@@ -177,45 +155,8 @@ void modem_init(){
 
 void modem_setup()
 {
-
-	modem_init();
-  // Configure pins
-  //pinMode(PTT_PIN, OUTPUT);
-  //digitalWrite(PTT_PIN, LOW);
-  //pinMode(AUDIO_PIN, OUTPUT);
-
-  // Start radio
-  Radio_Setup();
-
-  // Set up Timer 2 to do pulse width modulation on the speaker
-  // pin.
-
-  // Source timer2 from clkIO (datasheet p.164)
-  //ASSR &= ~(_BV(EXCLK) | _BV(AS2));
-
-  // Set fast PWM mode with TOP = 0xff: WGM22:0 = 3  (p.150)
-  //TCCR2A |= _BV(WGM21) | _BV(WGM20);
-  //TCCR2B &= ~_BV(WGM22);
-
-#if AUDIO_PIN == 11
-  // Do non-inverting PWM on pin OC2A (arduino pin 11) (p.159)
-  // OC2B (arduino pin 3) stays in normal port operation:
-  // COM2A1=1, COM2A0=0, COM2B1=0, COM2B0=0
-  TCCR2A = (TCCR2A | _BV(COM2A1)) & ~(_BV(COM2A0) | _BV(COM2B1) | _BV(COM2B0));
-#endif
-
-#if AUDIO_PIN == 3
-  // Do non-inverting PWM on pin OC2B (arduino pin 3) (p.159).
-  // OC2A (arduino pin 11) stays in normal port operation:
-  // COM2B1=1, COM2B0=0, COM2A1=0, COM2A0=0
- // TCCR2A = (TCCR2A | _BV(COM2B1)) & ~(_BV(COM2B0) | _BV(COM2A1) | _BV(COM2A0));
-#endif
-
-  // No prescaler (p.162)
-  //TCCR2B = (TCCR2B & ~(_BV(CS22) | _BV(CS21))) | _BV(CS20);
-
-  // Set initial pulse width to the rest position (0v after DC decoupling)
-  //OCR2 = REST_DUTY;
+   Modem_Init();
+   Radio_Setup();
 }
 
 _Bool modem_busy()
@@ -246,21 +187,13 @@ void modem_flush_frame()
 
   Delay_ms(100);
   Reset_Timer();
-  Init_Timer(10);                 //10us intervalinde timer0 baslat
+  Init_Timer(5);                 //10us intervalinde timer0 baslat
   Enable_Timer();                 //Timer0 enable et
-
-  // Clear the overflow flag, so that the interrupt doesn't go off
-  // immediately and overrun the next one (p.163).
-  //TIFR2 |= _BV(TOV2);       // Yeah, writing a 1 clears the flag.
-
-  // Enable interrupt when TCNT2 reaches TOP (0xFF) (p.151, 163)
-  //TIMSK2 |= _BV(TOIE2);
 }
 
 // This is called at PLAYBACK_RATE Hz to load the next sample.
 void Sinus_Generator(void) {
 	static uint32_t Audio_Signal = 0;
-
 
 if (go) {
 

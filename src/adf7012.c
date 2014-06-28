@@ -55,7 +55,7 @@ void Radio_Setup(void);
 //Function Prototypes
 
 // Configuration storage structs =============================================
-struct {
+typedef struct {
     struct {
         uint32_t  frequency_error_correction;
         uint8_t r_divider;
@@ -97,9 +97,9 @@ struct {
         uint8_t pll_test_mode;
         uint8_t sd_test_mode;
     } r3;
-} adf_config;
+} Adf_Config;
 
-
+Adf_Config adf_config;
 
 
 // Write directly to AVR port in SPIwrite() instead of using digitalWrite()
