@@ -37,8 +37,7 @@ _Bool Read_Adf7012_Muxout(uint32_t*);
 /*Function Prototypes*/
 
 
-extern void Radio_Setup(void);
-extern void Ptt_On(void);
+
 //uint32_t test;
 uint32_t timeout_check;
 /******************************************************************************
