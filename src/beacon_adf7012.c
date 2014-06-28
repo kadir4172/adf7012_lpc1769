@@ -19,6 +19,7 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "ax25.h"
 
 #define PORTNUM  1  //SSP1 portu Spi icin kullanilacak
 
@@ -84,6 +85,9 @@ uint16_t j = 0;
 for(j = 0; j < 256; j++){
 	memcpy(&modem_packet[j], &data, 1);
 }
+
+
+
 modem_setup();
 Delay_ms(100);
 
@@ -94,7 +98,7 @@ Delay_ms(100);
 		  PTT_OFF  = FALSE;
 	  }
 	  Delay_ms(600);
-	  modem_packet_size=256*8;
+	 // modem_packet_size=256*8;
 	  modem_flush_frame();
 
   }

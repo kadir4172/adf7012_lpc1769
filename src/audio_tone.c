@@ -122,30 +122,32 @@ const uint8_t sine_table[512] = {
  * PHASE_DELTA_Fg = Tt*(Fg/Fm)
  */
 
-static const uint8_t REST_DUTY       = 127;
+//Globals
+_Bool PTT_OFF = FALSE;
+uint32_t modem_packet_size = 0;
+uint8_t modem_packet[MODEM_MAX_PACKET];
+
+
+// Source-specific
+//static const uint8_t REST_DUTY       = 127;
 static const int TABLE_SIZE          = sizeof(sine_table);
 //static const uint32_t PLAYBACK_RATE   = F_CPU / 256;    // 62.5KHz @ F_CPU=16MHz; 31.25kHz @ 8MHz
-static const uint32_t PLAYBACK_RATE   = 200000;    // 100KHz (10us lik timer baslatilacak)
+static const uint32_t PLAYBACK_RATE   = 100000;    // 100KHz (10us lik timer baslatilacak)
 static const int BAUD_RATE                 = 1200;
-static  uint8_t SAMPLES_PER_BAUD ;//= (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667
+static  uint8_t SAMPLES_PER_BAUD ;
 
 static uint32_t PHASE_DELTA_1200;//
 static uint32_t PHASE_DELTA_2200;
 
 
-// Module globals
 static uint8_t current_byte;
 static uint8_t current_sample_in_baud;    // 1 bit = SAMPLES_PER_BAUD samples
 
-_Bool PTT_OFF = FALSE;
 static _Bool go = FALSE;
+
 static uint32_t phase_delta;                // 1200/2200 for standard AX.25
 static uint32_t phase;                      // Fixed point 9.7 (2PI = TABLE_SIZE)
 static uint32_t packet_pos;                 // Next bit to be sent out
-
-// Exported globals
-uint32_t modem_packet_size = 0;
-uint8_t modem_packet[MODEM_MAX_PACKET];
 
 void Modem_Init(){
 	SAMPLES_PER_BAUD = (PLAYBACK_RATE / BAUD_RATE); // 52.083333333 / 26.041666667
@@ -153,13 +155,13 @@ void Modem_Init(){
 	PHASE_DELTA_2200 = (((TABLE_SIZE * 2200L) << 7) / PLAYBACK_RATE); // 2306 / 4613
 }
 
-void modem_setup()
+void Modem_Setup()
 {
    Modem_Init();
    Radio_Setup();
 }
 
-_Bool modem_busy()
+_Bool Modem_Busy()
 {
   return go;
 }
@@ -187,7 +189,7 @@ void modem_flush_frame()
 
   Delay_ms(100);
   Reset_Timer();
-  Init_Timer(5);                 //10us intervalinde timer0 baslat
+  Init_Timer(10);                 //10us intervalinde timer0 baslat
   Enable_Timer();                 //Timer0 enable et
 }
 
@@ -217,7 +219,7 @@ if (go) {
       if ((packet_pos & 7) == 0)          // Load up next byte
         current_byte = modem_packet[packet_pos >> 3];
       else
-        current_byte = current_byte / 2;  // ">>1" forces int conversion
+        current_byte = current_byte / 2;  // ">>1" forces int conversion //ikiye bolmek hosdegil test edilsin kadir
       if ((current_byte & 1) == 0) {
         // Toggle tone (1200 <> 2200)
         phase_delta ^= (PHASE_DELTA_1200 ^ PHASE_DELTA_2200);

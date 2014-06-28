@@ -12,7 +12,7 @@
 
 
 typedef struct  {
-	char callsign[7];
+	uint8_t callsign[7];
 	uint8_t ssid;
 } s_address;
 

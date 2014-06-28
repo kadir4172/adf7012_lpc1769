@@ -33,7 +33,7 @@
 //#include <WProgram.h>
 #endif
 // Module globals
-uint32_t crc;
+uint16_t crc;
 int ones_in_a_row;
 
 // Module functions
@@ -163,7 +163,7 @@ void
 ax25_send_footer()
 {
   // Save the crc so that it can be treated it atomically
-  unsigned short int final_crc = crc;
+  uint16_t final_crc = crc;
 
   // Send the CRC
   send_byte(~(final_crc & 0xff));
