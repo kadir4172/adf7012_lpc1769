@@ -24,7 +24,7 @@ __CRP const uint32_t CRP_WORD = CRP_NO_CRP ;
 
 extern  _Bool PTT_OFF;
 extern void Ptt_Off(void);
-
+extern uint8_t modem_packet[MODEM_MAX_PACKET];
 /******************************************************************************
 **   Main Function  main()
 ******************************************************************************/
@@ -48,14 +48,25 @@ int main (void)
   ADCInit(ADC_CLK);               // 1Mhz ADC peripheral enable
   Delay_ms(100);
 
-  s_address beacon_address[1] = {{"TAMSAT", 5}};
-  Ax25_Send_Header(beacon_address,1);
-  Ax25_Send_String("Hello World!");
+
+  s_address beacon_address[2] = {{"CUBEYY", 5},{"CUBEXX", 7}};
+
+  Ax25_Send_Header(beacon_address,2);
+  //Ax25_Send_String(" Cubesat Beacon Battery = 10.2V Hello World! This is CubeSAT ");
+  //Ax25_Send_String(" Cubesat Beacon Battery = 10.2V Hello World! This is CubeSAT ");
+  //Ax25_Send_String("Hello World! This is CUBE19, I'm alive :) VBAT = 10.3V");
+  //Ax25_Send_String("HELLO WORLD! THIS IS CUBEXX IM ALIVE!");
+  Ax25_Send_String("HELLO");
   Ax25_Send_Footer();
 
   Modem_Setup();
   Delay_ms(100);
-
+  ADF7012_CLEAR_DATA_PIN ;
+  Delay_ms(100);
+  Ptt_On();
+  //Delay_ms(100);
+  //Delay_ms(100);
+  //Ptt_Off();
   while ( 1 )                   //main de yapilacak is kalmadi bundan sonra isr lerde devam edecegiz
   {
 	  if(PTT_OFF){
@@ -63,9 +74,30 @@ int main (void)
 		  PTT_OFF  = FALSE;
 	  }
 
+
 	  //modem_packet_size=256*8;
+	  //ADF7012_CLEAR_CLK_PIN ;
+	  //Delay_ms(1);
+	  //ADF7012_SET_DATA_PIN ;
+	  //Delay_ms(1);
+	  //ADF7012_SET_CLK_PIN ;
+	  //Ptt_On();
+	  //Delay_ms(500);
+	  //Ptt_On();
+      //Delay_ms(1000);
 	  Modem_Flush_Frame();
-	  Delay_ms(600);
+	  Delay_ms(200);
+	  //Ptt_On();
+	 // ADF7012_CLEAR_CLK_PIN ;
+	 // Delay_ms(1);
+	 // ADF7012_CLEAR_DATA_PIN ;
+	 // Delay_ms(1);
+	 // ADF7012_SET_CLK_PIN ;
+
+	  //while(1);
+
+	  // Ptt_Off();
+
   }
   return 0;
 }

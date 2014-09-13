@@ -115,7 +115,7 @@ void Ax25_Send_Header(s_address addresses[], int num_addresses)
   crc = 0xffff;
 
   // Send sync ("a bunch of 0s")
-  for (i = 0; i < 60; i++)
+  for (i = 0; i < 100; i++)
   {
     Ax25_Send_Sync();
   }
@@ -128,14 +128,16 @@ void Ax25_Send_Header(s_address addresses[], int num_addresses)
 
   for (i = 0; i < num_addresses; i++) {
     // Transmit callsign
-    for (j = 0; addresses[i].callsign[j]; j++)
+    //for (j = 0; addresses[i].callsign[j]; j++)
+	  for (j = 0; j < 6; j++)
       Send_Byte(addresses[i].callsign[j] << 1);
     // Transmit pad
-    for ( ; j < 6; j++)
-      Send_Byte(' ' << 1);
+    //for ( ; j < 6; j++)
+      //Send_Byte(' ' << 1);
     // Transmit SSID. Termination signaled with last bit = 1
     if (i == num_addresses - 1)
       Send_Byte(('0' + addresses[i].ssid) << 1 | 1);
+
     else
       Send_Byte(('0' + addresses[i].ssid) << 1);
   }
